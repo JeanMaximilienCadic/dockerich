@@ -1,29 +1,29 @@
 from importlib.metadata import entry_points
 from setuptools import setup
-from dockerps import __version__
+from dockerich import __version__
 
 setup(
-    name="dockerps",
+    name="dockerich",
     version=__version__,
-    short_description="dockerps",
-    long_description="dockerps",
+    short_description="dockerich",
+    long_description="dockerich",
     packages=[
-        "dockerps",
+        "dockerich",
     ],
     include_package_data=True,
     package_data={'': ['*.yml']},
     entry_points={
         "console_scripts":[
-            "dockerps=dockerps:__main__"
+            "dockerich=dockerich:__main__"
             ]
     },
-    url='https://github.com/JeanMaximilienCadic/dockerps.git',
+    url='https://github.com/JeanMaximilienCadic/dockerich.git',
     license='MIT',
     author='CADIC Jean-Maximilien',
     python_requires='>=3.8',
     install_requires=[r.rsplit()[0] for r in open("requirements.txt")],
     author_email='contact@cadic.jp',
-    description='dockerps',
+    description='dockerich',
     platforms="linux_debian_10_x86_64",
     classifiers=[
         "Programming Language :: Python :: 3",

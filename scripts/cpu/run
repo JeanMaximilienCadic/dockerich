@@ -1,9 +1,9 @@
 #!/bin/sh
 
 cd ../../
-docker run --rm --name dockerps \
+docker run --rm --name dockerich \
         -v $(pwd):$(pwd) \
-        -dt cadic/dockerps bash
+        -dt cadic/dockerich bash
 
 
 
