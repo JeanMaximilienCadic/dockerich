@@ -1,3 +1,4 @@
+from importlib.metadata import entry_points
 from setuptools import setup
 from dockerps import __version__
 
@@ -11,6 +12,11 @@ setup(
     ],
     include_package_data=True,
     package_data={'': ['*.yml']},
+    entry_points={
+        "console_scripts":[
+            "dockerps=dockerps:__main__"
+            ]
+    },
     url='https://github.com/JeanMaximilienCadic/dockerps.git',
     license='MIT',
     author='CADIC Jean-Maximilien',

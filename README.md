@@ -1,7 +1,7 @@
 
 <h1 align="center">
   <br>
-  <a href="https://drive.google.com/uc?id=1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1"><img src="https://drive.google.com/uc?1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1" alt="" width="200"></a>
+  <a href="https://drive.google.com/uc?id=1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1"><img src="https://drive.google.com/uc?id=1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1" alt="" width="200"></a>
   <br>
   <br>
 </h1>
@@ -17,6 +17,7 @@
 
 ### Code structure
 ```python
+from importlib.metadata import entry_points
 from setuptools import setup
 from dockerps import __version__
 
@@ -30,6 +31,11 @@ setup(
     ],
     include_package_data=True,
     package_data={'': ['*.yml']},
+    entry_points={
+        "console_scripts":[
+            "dockerps=dockerps:__main__"
+            ]
+    },
     url='https://github.com/JeanMaximilienCadic/dockerps.git',
     license='MIT',
     author='CADIC Jean-Maximilien',
@@ -68,4 +74,9 @@ pip install dist/*.whl
 ### Docker
 ```shell
 cd scripts && ./compile
+```
+
+### To test
+```
+dockerps
 ```
