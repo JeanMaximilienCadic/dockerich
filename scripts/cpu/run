@@ -1,0 +1,10 @@
+#!/bin/sh
+
+cd ../../
+docker run --rm --name dockerps \
+        -v $(pwd):$(pwd) \
+        -dt cadic/dockerps bash
+
+
+
+
