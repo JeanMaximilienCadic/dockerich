@@ -20,7 +20,7 @@ setup(
     url='https://github.com/JeanMaximilienCadic/dockerich.git',
     license='MIT',
     author='CADIC Jean-Maximilien',
-    python_requires='>=3.8',
+    python_requires='>=3.6',
     install_requires=[r.rsplit()[0] for r in open("requirements.txt")],
     author_email='contact@cadic.jp',
     description='dockerich',
