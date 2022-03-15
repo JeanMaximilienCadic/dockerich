@@ -15,6 +15,8 @@
 [comment]: <> (  <a href="#notebook">Notebook </a> •)
 </p>
 
+![alt text](imgs/imgs.png)
+
 ### Code structure
 ```python
 from importlib.metadata import entry_points
