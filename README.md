@@ -58,7 +58,7 @@ setup(
 To clone and run this application, you'll need [Git](https://git-scm.com) and [ https://docs.docker.com/docker-for-mac/install/]( https://docs.docker.com/docker-for-mac/install/) and Python installed on your computer. 
 From your command line:
 
-Install the cmj-recsys:
+Install the wheel:
 ```bash
 # Clone this repository and install the code
 git clone https://github.com/JeanMaximilienCadic/dockerich.git
