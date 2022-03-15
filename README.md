@@ -1,9 +1,8 @@
 
 <h1 align="center">
   <br>
-
-  <iframe src="https://drive.google.com/file/d/1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1/preview" width="640" height="480" allow="autoplay"></iframe>
-
+  <a href="https://drive.google.com/uc?id=1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1"><img src="https://drive.google.com/uc?1eU3omWjiGGhvEEaTmDqh2kkhLPKlcgu1" alt="" width="200"></a>
+  <br>
   <br>
 </h1>
 
