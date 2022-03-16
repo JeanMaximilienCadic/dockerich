@@ -188,7 +188,13 @@ class DockerTable:
                 "Ports": "",
             }
             try:
-                d["Ports"]= "\n".join([f"{k.split('/')[0]}:{v[0]['HostPort']}" for k, v in c.ports.items()])
+                ports=[]
+                for k, v in c.ports.items():
+                    if v is not None:
+                        ports.append(f"{k}:{v[0]['HostPort']}")
+                    else:
+                        ports.append(f"{k}")
+                d["Ports"]= "\n".join(ports)
             except:
                 pass
             try:
