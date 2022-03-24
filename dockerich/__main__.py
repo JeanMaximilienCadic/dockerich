@@ -4,7 +4,7 @@ Demonstrates a dynamic Layout
 
 """
 
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import docker
 
 from time import sleep
@@ -15,6 +15,7 @@ from rich.layout import Layout
 from rich.live import Live
 from rich.text import Text
 import pandas as pd
+from dateutil import parser
 """
 This example shows how to display content in columns.
 
@@ -28,95 +29,31 @@ from rich.columns import Columns
 from rich.panel import Panel
 from rich.table import Table
 
-"""Lite simulation of the top linux command."""
-import random
-import sys
-import time
-from dataclasses import dataclass
 
 from rich import box
 from rich.console import Console
 from rich.live import Live
 from rich.table import Table
 
-if sys.version_info >= (3, 8):
-    from typing import Literal
-else:
-    from typing_extensions import Literal
-
-
-@dataclass
-class Process:
-    pid: int
-    command: str
-    cpu_percent: float
-    memory: int
-    start_time: datetime
-    thread_count: int
-    state: Literal["running", "sleeping"]
-
-    @property
-    def memory_str(self) -> str:
-        if self.memory > 1e6:
-            return f"{int(self.memory/1e6)}M"
-        if self.memory > 1e3:
-            return f"{int(self.memory/1e3)}K"
-        return str(self.memory)
-
-    @property
-    def time_str(self) -> str:
-        return str(datetime.now() - self.start_time)
-
-
-def generate_process(pid: int) -> Process:
-    return Process(
-        pid=pid,
-        command=f"Process {pid}",
-        cpu_percent=random.random() * 20,
-        memory=random.randint(10, 200) ** 3,
-        start_time=datetime.now()
-        - timedelta(seconds=random.randint(0, 500) ** 2),
-        thread_count=random.randint(1, 32),
-        state="running" if random.randint(0, 10) < 8 else "sleeping",
-    )
-
-
-def create_process_table(height: int) -> Table:
-
-    processes = sorted(
-        [generate_process(pid) for pid in range(height)],
-        key=lambda p: p.cpu_percent,
-        reverse=True,
-    )
-    table = Table(
-        "PID", "Command", "CPU %", "Memory", "Time", "Thread #", "State", box=box.SIMPLE
-    )
-
-    for process in processes:
-        table.add_row(
-            str(process.pid),
-            process.command,
-            f"{process.cpu_percent:.1f}",
-            process.memory_str,
-            process.time_str,
-            str(process.thread_count),
-            process.state,
-        )
-
-    return table
 
 def calculate_cpu_percent(d):
-    cpu_count = len(d["cpu_stats"]["cpu_usage"]["percpu_usage"])
-    cpu_percent = 0.0
-    cpu_delta = float(d["cpu_stats"]["cpu_usage"]["total_usage"]) - \
-                float(d["precpu_stats"]["cpu_usage"]["total_usage"])
-    system_delta = d["cpu_stats"]["cpu_usage"]["total_usage"]
-    if system_delta > 0.0:
+    try:
+        cpu_count = len(d["cpu_stats"]["cpu_usage"]["percpu_usage"])
+        cpu_delta = float(d["cpu_stats"]["cpu_usage"]["total_usage"]) - \
+                    float(d["precpu_stats"]["cpu_usage"]["total_usage"])
+        system_delta = d["cpu_stats"]["cpu_usage"]["total_usage"]
+        assert system_delta > 0.0
         cpu_percent = cpu_delta / system_delta * 100.0 * cpu_count
+    except:
+        cpu_percent = -1.0
     return '{0:.2f}'.format(cpu_percent)
 
 def calculate_memory_percent(d):
-    return '{0:.2f}'.format(d["memory_stats"]["max_usage"]/d["memory_stats"]["limit"])
+    try:
+        mem_used = d["memory_stats"]["max_usage"]/d["memory_stats"]["limit"]
+    except:
+        mem_used = -1.0
+    return '{0:.2f}'.format(mem_used)
     
 def get_name(c):
     return c.attrs["Name"][1:]
@@ -151,18 +88,52 @@ class DockerColumns:
                     title=f"[b]{name}[/b]",
                     expand=True))
                 break
-        return Columns(panels)
+        return Columns(panels, title="Dev" if self._is_dev else "Prod")
     
     
     @staticmethod
     def make_panel(container, stat):
         state = container["info"].attrs["State"]["Status"]
+        IP = container["info"].attrs["NetworkSettings"]["IPAddress"]
+        if IP == "":
+            IP = "0.0.0.0"
         cpu = calculate_cpu_percent(stat)
         mem = calculate_memory_percent(stat)
+        iu,ou = "MB", "MB"
+        try:
+            i = stat["networks"]["eth0"]["rx_bytes"]
+            if i<pow(10,9):
+                i /= pow(10,6)
+            else:
+                i /= pow(10,9)
+                iu = "GB"
+            i = format(i, '.2f')
+            
+            o = stat["networks"]["eth0"]["tx_bytes"]
+            if o<pow(10,9):
+                o /= pow(10,6)
+            else:
+                o /= pow(10,9)
+                ou = "GB"    
+            o = format(o, '.2f')
+        except:
+            i, o = 0, 0
         color_state = "yellow" if not state=="running" else "green"
         cpu_color = "blue" if int(eval(cpu))<70 else "yellow"
         mem_color = "blue" if int(eval(mem))<70 else "yellow"
-        return f"[{color_state}]{state}\n[{cpu_color}]CPU [{cpu}]\n[{mem_color}]MEM [{mem}]"
+        delta = None
+        try:
+            d0 = parser.parse(container["info"].attrs["State"]["StartedAt"]).replace(tzinfo=timezone.utc)
+            d1 = datetime.now(timezone.utc)
+            delta = timedelta(seconds=(d1-d0).seconds)
+        except:
+            pass
+        return f"[{color_state}]{state} ({delta})\n" \
+            f"[{'purple'}]IP: {IP}\n" \
+            f"[{cpu_color}]CPU [{cpu}]\n" \
+            f"[{mem_color}]MEM [{mem}]\n" \
+            f"NET [{i}{iu}/{o}{ou}]\n" \
+                
 
 
 
@@ -191,10 +162,17 @@ class DockerTable:
                 ports=[]
                 for k, v in c.ports.items():
                     if v is not None:
-                        ports.append(f"{k}:{v[0]['HostPort']}")
+                        ports.append(f"{v[0]['HostPort']}:{k}")
                     else:
                         ports.append(f"{k}")
                 d["Ports"]= "\n".join(ports)
+            except:
+                pass
+            try:
+                mounts=[]
+                for m in c.attrs['Mounts']:
+                    mounts.append(f"{m['Source']}:{m['Destination']}")
+                d["Mounts"]= "\n".join(sorted(mounts))
             except:
                 pass
             try:
@@ -222,31 +200,34 @@ console = Console()
 layout = Layout()
 
 layout.split(
-    Layout(name="header",   size=1),
-    Layout(name="main",     ratio=1),
-    # Layout(name="footer",   size=10),
+    Layout(name="header",   size=2),
+    Layout(name="stats",
+           minimum_size=10,
+           ratio=1,
+           ),
+    Layout(name="containers",
+           minimum_size=10,
+        ratio=2
+           ),
+
 )
 
-layout["main"].split_row(
-    Layout(name="side"),
-    Layout(name="body", ratio=2)
-    )
-
-layout["side"].split(
-    # Layout(), 
+layout["stats"].split_row(
     Layout(name="dev_containers"),
-    Layout(name="containers"),
-)
-
-layout["body"].update(
-    Align.center(
-        Text(
-            """This is a demonstration of rich.Layout\n\nHit Ctrl+C to exit""",
-            justify="center",
-        ),
-        vertical="middle",
+    Layout(name="prod_containers",
+        #    ratio=2
+           )
     )
-)
+
+# layout["containers"].update(
+#     Align.center(
+#         Text(
+#             """This is a demonstration of rich.Layout\n\nHit Ctrl+C to exit""",
+#             justify="center",
+#         ),
+#         vertical="middle",
+#     )
+# )
 
 
 class Clock:
@@ -259,15 +240,13 @@ client = docker.from_env()
 containers = client.containers.list()
 
 layout["header"].update(Clock())
-layout["body"].update(DockerTable(client, full=False))
+layout["prod_containers"].update(DockerColumns(client, is_dev=False))
+layout["containers"].update(DockerTable(client, full=False))
 layout["dev_containers"].update(DockerColumns(client, is_dev=True))
-layout["containers"].update(DockerColumns(client, is_dev=False))
-# layout["body"].update(create_process_table(console.size.height - 4))
 
 with Live(layout, screen=True, redirect_stderr=False) as live:
     try:
         while True:
-            # live.update(create_process_table(console.size.height - 4), refresh=True)
             sleep(0.1)
     except KeyboardInterrupt:
         pass
